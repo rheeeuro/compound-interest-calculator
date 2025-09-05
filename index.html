@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>복리 계산기 (월 수익률 1~2배)</title>
+
+    <!-- ✅ Favicon (SVG data URI) -->
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23111634'/%3E%3Cpath d='M12 44 L26 30 L36 40 L52 24' fill='none' stroke='%236ee7ff' stroke-width='6' stroke-linecap='round'/%3E%3Ccircle cx='52' cy='24' r='4' fill='%238b5cf6'/%3E%3C/svg%3E"
+    />
+
+    <style>
+      :root {
+        --bg: #0f1226;
+        --bg2: #111634;
+        --card: rgba(255, 255, 255, 0.08);
+        --card-border: rgba(255, 255, 255, 0.15);
+        --text: #e9ecf1;
+        --muted: #b8c0d4;
+        --accent: #6ee7ff;
+        --accent-2: #8b5cf6;
+        --good: #32d583;
+        --warn: #f59e0b;
+        --track: rgba(255, 255, 255, 0.2);
+        --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+        --radius: 16px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", Roboto, "Apple SD Gothic Neo", "Noto Sans KR",
+          "Malgun Gothic", sans-serif;
+        color: var(--text);
+        background: radial-gradient(
+            1200px 600px at 10% 10%,
+            #1b1f4a 0%,
+            transparent 60%
+          ),
+          radial-gradient(1000px 500px at 90% 20%, #24144b 0%, transparent 60%),
+          linear-gradient(180deg, var(--bg) 0%, #0b0e20 100%);
+        min-height: 100svh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 32px 16px;
+      }
+
+      .wrap {
+        width: min(1100px, 100%);
+        display: grid;
+        grid-template-columns: 1.15fr 1fr;
+        gap: 22px;
+      }
+      @media (max-width: 980px) {
+        .wrap {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .card {
+        background: var(--card);
+        border: 1px solid var(--card-border);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(10px);
+      }
+
+      .header {
+        padding: 18px 22px;
+        border-bottom: 1px solid var(--card-border);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .header h1 {
+        font-size: 18px;
+        margin: 0;
+        font-weight: 700;
+        letter-spacing: 0.2px;
+      }
+
+      .grid {
+        display: grid;
+        gap: 14px;
+        grid-template-columns: 1fr 1fr;
+      }
+      @media (max-width: 680px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .section {
+        padding: 18px 18px 20px;
+      }
+
+      label {
+        font-size: 12px;
+        color: var(--muted);
+        display: block;
+        margin: 0 0 8px;
+        letter-spacing: 0.3px;
+      }
+
+      .input {
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid var(--card-border);
+        border-radius: 12px;
+        padding: 12px 14px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .input input[type="number"] {
+        width: 100%;
+        background: transparent;
+        border: 0;
+        outline: 0;
+        color: var(--text);
+        font-size: 16px;
+        letter-spacing: 0.2px;
+      }
+      .suffix {
+        color: var(--muted);
+        font-size: 13px;
+        white-space: nowrap;
+      }
+
+      .slider-row {
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid var(--card-border);
+        border-radius: 12px;
+        padding: 14px 14px 10px;
+      }
+      .slider-top {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 10px;
+      }
+      .slider-top .value {
+        font-variant-numeric: tabular-nums;
+        font-weight: 700;
+        color: var(--accent);
+      }
+      input[type="range"] {
+        width: 100%;
+        -webkit-appearance: none;
+        appearance: none;
+        height: 6px;
+        border-radius: 999px;
+        background: linear-gradient(
+          to right,
+          var(--accent) 50%,
+          var(--track) 50%
+        );
+        outline: none;
+      }
+      input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: radial-gradient(20px 20px at 30% 30%, #fff, #dff7ff);
+        border: 2px solid var(--accent);
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+        cursor: pointer;
+        margin-top: -8px;
+      }
+      input[type="range"]::-moz-range-thumb {
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: #fff;
+        border: 2px solid var(--accent);
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+        cursor: pointer;
+      }
+
+      .actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 4px;
+      }
+      .btn {
+        border: 1px solid var(--card-border);
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.12),
+          rgba(255, 255, 255, 0.06)
+        );
+        color: var(--text);
+        padding: 10px 14px;
+        border-radius: 12px;
+        cursor: pointer;
+        font-weight: 600;
+      }
+      .btn.primary {
+        border-color: transparent;
+        background: linear-gradient(90deg, var(--accent-2), var(--accent));
+        color: #0c1130;
+      }
+      .btn.ghost {
+        background: transparent;
+      }
+
+      /* 결과 카드 */
+      .result-wrap {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+      @media (max-width: 680px) {
+        .result-wrap {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .stat {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid var(--card-border);
+        border-radius: 12px;
+        padding: 14px;
+      }
+      .stat small {
+        color: var(--muted);
+        display: block;
+        margin-bottom: 6px;
+      }
+      .stat .num {
+        font-size: 20px;
+        font-weight: 800;
+        letter-spacing: 0.2px;
+      }
+
+      .stat.good .num {
+        color: var(--good);
+      }
+      .stat.warn .num {
+        color: var(--warn);
+      }
+
+      /* 오른쪽 카드: 차트 + 요약 */
+      .summary {
+        padding: 18px;
+        display: grid;
+        gap: 16px;
+      }
+      canvas {
+        width: 100%;
+        height: 260px;
+        background: rgba(255, 255, 255, 0.04);
+        border-radius: 12px;
+        border: 1px solid var(--card-border);
+      }
+
+      details {
+        margin-top: 6px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--card-border);
+        border-radius: 12px;
+        padding: 10px 12px;
+      }
+      details[open] {
+        padding-bottom: 14px;
+      }
+      details summary {
+        cursor: pointer;
+        color: var(--accent);
+        font-weight: 700;
+        outline: none;
+        list-style: none;
+      }
+      details summary::-webkit-details-marker {
+        display: none;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 12px;
+        font-variant-numeric: tabular-nums;
+      }
+      th,
+      td {
+        border-bottom: 1px dashed rgba(255, 255, 255, 0.12);
+        padding: 10px 6px;
+        text-align: right;
+        font-size: 13px;
+      }
+      th:first-child,
+      td:first-child {
+        text-align: left;
+      }
+      th {
+        color: var(--muted);
+        font-weight: 600;
+      }
+
+      /* 🔁 기간 단위 토글 */
+      .seg {
+        display: inline-flex;
+        gap: 4px;
+        padding: 4px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid var(--card-border);
+      }
+      .seg button {
+        border: 0;
+        padding: 6px 12px;
+        border-radius: 999px;
+        cursor: pointer;
+        color: var(--muted);
+        background: transparent;
+        font-weight: 700;
+      }
+      .seg button.active {
+        color: #0c1130;
+        background: linear-gradient(90deg, var(--accent-2), var(--accent));
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <!-- 왼쪽: 입력 & 결과 -->
+      <div class="card">
+        <div class="header">
+          <svg
+            width="22"
+            height="22"
+            viewBox="0 0 24 24"
+            fill="none"
+            aria-hidden="true"
+          >
+            <path
+              d="M4 7h16M4 12h16M4 17h10"
+              stroke="url(#g)"
+              stroke-width="2"
+              stroke-linecap="round"
+            />
+            <defs>
+              <linearGradient
+                id="g"
+                x1="0"
+                x2="24"
+                y1="0"
+                y2="0"
+                gradientUnits="userSpaceOnUse"
+              >
+                <stop stop-color="#8b5cf6" />
+                <stop offset="1" stop-color="#6ee7ff" />
+              </linearGradient>
+            </defs>
+          </svg>
+          <h1>복리 계산기</h1>
+        </div>
+
+        <div class="section">
+          <div class="grid">
+            <!-- 초기 자금 -->
+            <div>
+              <label for="initial">초기 자금</label>
+              <div class="input">
+                <input
+                  id="initial"
+                  type="number"
+                  min="0"
+                  step="1000"
+                  value="5000000"
+                  aria-label="초기 자금(원)"
+                />
+                <span class="suffix">원</span>
+              </div>
+            </div>
+
+            <!-- 월 투자금액 -->
+            <div>
+              <label for="monthly">월 투자금액</label>
+              <div class="input">
+                <input
+                  id="monthly"
+                  type="number"
+                  min="0"
+                  step="1000"
+                  value="500000"
+                  aria-label="월 투자금액(원)"
+                />
+                <span class="suffix">원/월</span>
+              </div>
+            </div>
+
+            <!-- 월 수익률 (배수) -->
+            <div style="grid-column: 1 / -1">
+              <label for="rate">월 수익률 (배수 1.00x ~ 2.00x)</label>
+              <div class="slider-row">
+                <div class="slider-top">
+                  <div class="muted">슬라이더로 조절하세요</div>
+                  <div class="value">
+                    <span id="rateX">1.02x</span>
+                    <span style="color: var(--muted); font-weight: 600"
+                      >(≈ <span id="ratePct">2%</span>)</span
+                    >
+                  </div>
+                </div>
+                <input
+                  id="rate"
+                  type="range"
+                  min="1"
+                  max="2"
+                  step="0.01"
+                  value="1.02"
+                />
+              </div>
+            </div>
+
+            <!-- 기간 + 단위 토글 -->
+            <div>
+              <label id="periodLabel" for="periodValue">기간 (개월)</label>
+              <div class="input">
+                <input
+                  id="periodValue"
+                  type="number"
+                  min="1"
+                  step="1"
+                  value="60"
+                  aria-label="기간"
+                />
+                <span class="suffix" id="periodSuffix">개월</span>
+              </div>
+            </div>
+            <div style="align-self: end">
+              <label>단위</label>
+              <div class="seg" role="tablist" aria-label="기간 단위 선택">
+                <button
+                  type="button"
+                  class="active"
+                  data-unit="months"
+                  role="tab"
+                  aria-selected="true"
+                >
+                  개월
+                </button>
+                <button
+                  type="button"
+                  data-unit="years"
+                  role="tab"
+                  aria-selected="false"
+                >
+                  년
+                </button>
+              </div>
+            </div>
+
+            <!-- 액션 -->
+            <div class="actions" style="grid-column: 1 / -1">
+              <button class="btn primary" id="run">계산하기</button>
+              <button class="btn ghost" id="reset">초기화</button>
+            </div>
+          </div>
+
+          <div style="height: 12px"></div>
+
+          <!-- 결과 요약 -->
+          <div class="result-wrap">
+            <div class="stat">
+              <div>
+                <small>최종 잔액</small>
+                <div class="num" id="finalBalance">-</div>
+              </div>
+              <span aria-hidden="true">💰</span>
+            </div>
+            <div class="stat">
+              <div>
+                <small>총 투자원금</small>
+                <div class="num" id="totalContrib">-</div>
+              </div>
+              <span aria-hidden="true">📥</span>
+            </div>
+            <div class="stat good">
+              <div>
+                <small>총 수익</small>
+                <div class="num" id="totalGain">-</div>
+              </div>
+              <span aria-hidden="true">📈</span>
+            </div>
+            <div class="stat warn">
+              <div>
+                <small>원금대비 수익률</small>
+                <div class="num" id="roiPct">-</div>
+              </div>
+              <span aria-hidden="true">🧮</span>
+            </div>
+          </div>
+
+          <details id="tableWrap">
+            <summary>월별 내역 보기</summary>
+            <div style="overflow: auto">
+              <table id="schedule">
+                <thead>
+                  <tr>
+                    <th>월</th>
+                    <th>월 투자금</th>
+                    <th>적용 배수</th>
+                    <th>월말 잔액</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <!-- 오른쪽: 차트 & 메모 -->
+      <div class="card summary">
+        <div>
+          <label>잔액 추이</label>
+          <canvas
+            id="chart"
+            width="800"
+            height="260"
+            aria-label="잔액 추이 라인 차트"
+          ></canvas>
+        </div>
+        <div>
+          <label>계산 방식</label>
+          <div style="font-size: 13px; color: var(--muted); line-height: 1.6">
+            매월 <b>월 투자금</b>을 기존 잔액에 더한 뒤, 설정한
+            <b>월 수익률 배수</b>를 적용합니다.<br />
+            수식: <code>(잔액 + 월 투자금) × 월 수익률(배수)</code> 를
+            기간(개월)만큼 반복.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const el = (id) => document.getElementById(id);
+
+      // 만진법 단위
+      const BASE = 10_000;
+      // 금액 단위(만원을 최하위로)
+      const MONEY_UNITS = [
+        "만원",
+        "억",
+        "조",
+        "경",
+        "해",
+        "자",
+        "양",
+        "구",
+        "간",
+        "정",
+      ];
+      // 퍼센트 단위(%를 최하위로)
+      const PCT_UNITS = [
+        "%",
+        "만%",
+        "억%",
+        "조%",
+        "경%",
+        "해%",
+        "자%",
+        "양%",
+        "구%",
+        "간%",
+        "정%",
+      ];
+
+      // ─────────────────────────────────────────────────────────────
+      // 공통: 정수값을 10000진 자릿수 배열로 (LSB→MSB) 변환
+      function toBaseDigits(intVal) {
+        const digits = [];
+        let v = Math.max(0, Math.trunc(intVal));
+        if (v === 0) return [0];
+        while (v > 0) {
+          digits.push(v % BASE);
+          v = Math.floor(v / BASE);
+        }
+        return digits;
+      }
+
+      // 공통: 상위 2단위만 남기고 그 이하는 HALF-UP 반올림
+      // digits: LSB→MSB, 반환: 반올림된 새 digits
+      function roundKeepTwoUnits(digits) {
+        let h = digits.length - 1;
+        while (h > 0 && digits[h] === 0) h--; // 최상위 비영 자릿수
+        const s = Math.max(0, h - 1); // 두 번째 자릿수(항상 h-1 기준)
+
+        if (s > 0) {
+          const below = digits[s - 1];
+          let carry = false;
+          if (below > BASE / 2) carry = true;
+          else if (below === BASE / 2) {
+            // 정확히 절반이면 더 아래 자릿수에 값 있으면 올림 (관용 half-up)
+            let anyLower = false;
+            for (let k = 0; k <= s - 2; k++) {
+              if (digits[k] !== 0) {
+                anyLower = true;
+                break;
+              }
+            }
+            carry = true || anyLower;
+          }
+          for (let k = 0; k < s; k++) digits[k] = 0; // s 아래는 절사
+          if (carry) {
+            digits[s] += 1;
+            // 자리올림 전파
+            let i = s;
+            while (digits[i] >= BASE) {
+              digits[i] = 0;
+              i++;
+              if (i >= digits.length) {
+                digits.push(1);
+                break;
+              } else {
+                digits[i] += 1;
+              }
+            }
+          }
+        }
+        return digits;
+      }
+
+      // 공통: 반올림된 digits를 상위 2단위 문자열로 구성
+      function joinTwoUnits(digits, UNITS) {
+        let h = digits.length - 1;
+        while (h > 0 && digits[h] === 0) h--;
+        const s = Math.max(0, h - 1);
+
+        const parts = [];
+        parts.push(`${digits[h]}${UNITS[h]}`);
+        if (s !== h && digits[s] > 0) parts.push(`${digits[s]}${UNITS[s]}`);
+        return parts.join(" ");
+      }
+
+      // ✅ 금액 포맷: "xxxx조 xxxx만" (두 단위, 만원 이하는 반올림)
+      function fmtKRW(n) {
+        const neg = n < 0;
+        const manTotal = Math.round(Math.abs(n) / 10_000); // 만원 단위 반올림
+        if (manTotal === 0) return "0원";
+        const digits = roundKeepTwoUnits(toBaseDigits(manTotal));
+        const out = joinTwoUnits(digits, MONEY_UNITS);
+        return (neg ? "-" : "") + out;
+      }
+
+      // ✅ 퍼센트 포맷: 금액처럼 억/조/경/… 단위 지원 (두 단위, %는 최하위)
+      // 예) 12,345.4% → "1만 2345%"; 1,2345,6789% → "1억 2345만%"; 99.6% → "100%"
+      function fmtPercentBigUnits(p, { showSign = false } = {}) {
+        if (!isFinite(p) || p === 0) {
+          return showSign ? "+0%" : "0%";
+        }
+        const sign = p < 0 ? "-" : showSign ? "+" : "";
+        const pctInt = Math.round(Math.abs(p)); // % 이하 반올림 → 정수 %
+        const digits = roundKeepTwoUnits(toBaseDigits(pctInt));
+        const out = joinTwoUnits(digits, PCT_UNITS);
+        return sign + out;
+      }
+
+      const $initial = el("initial");
+      const $monthly = el("monthly");
+      const $rate = el("rate");
+      const $run = el("run");
+      const $reset = el("reset");
+
+      const $rateX = el("rateX");
+      const $ratePct = el("ratePct");
+
+      const $finalBalance = el("finalBalance");
+      const $totalContrib = el("totalContrib");
+      const $totalGain = el("totalGain");
+      const $roiPct = el("roiPct");
+
+      const $tableBody = document.querySelector("#schedule tbody");
+      const $tableWrap = el("tableWrap");
+      const $chart = el("chart");
+      const ctx = $chart.getContext("2d");
+
+      // 🔁 기간 관련 요소
+      const $periodLabel = el("periodLabel");
+      const $periodValue = el("periodValue");
+      const $periodSuffix = el("periodSuffix");
+      const $unitBtns = document.querySelectorAll("[data-unit]");
+      let periodUnit = "months"; // 'months' | 'years'
+
+      // 슬라이더 진행도 색상 업데이트
+      function paintSlider(slider) {
+        const min = parseFloat(slider.min),
+          max = parseFloat(slider.max),
+          val = parseFloat(slider.value);
+        const pct = ((val - min) / (max - min)) * 100;
+        slider.style.background = `linear-gradient(to right, var(--accent) ${pct}%, var(--track) ${pct}%)`;
+      }
+
+      function updateRateDisplay() {
+        const rate = parseFloat($rate.value);
+        $rateX.textContent = rate.toFixed(2) + "x";
+        // (rate-1)*100 은 0~100% 범위이지만, 큰 값에도 대응하도록 동일 포맷 사용
+        $ratePct.textContent = fmtPercentBigUnits((rate - 1) * 100, {
+          showSign: false,
+        });
+        paintSlider($rate);
+      }
+
+      // 🔁 단위 토글 UI/값 동기화
+      function setPeriodUnit(next) {
+        if (next === periodUnit) return;
+
+        // 현재 입력값 기준 변환
+        const v = Math.max(1, Math.floor(+$periodValue.value || 1));
+
+        if (next === "years" && periodUnit === "months") {
+          const years = Math.max(1, Math.round(v / 12));
+          $periodValue.value = years;
+        } else if (next === "months" && periodUnit === "years") {
+          const months = Math.max(1, v * 12);
+          $periodValue.value = months;
+        }
+
+        periodUnit = next;
+        // 라벨/접미사
+        $periodLabel.textContent =
+          periodUnit === "months" ? "기간 (개월)" : "기간 (년)";
+        $periodSuffix.textContent = periodUnit === "months" ? "개월" : "년";
+
+        // 접근성 & 활성 버튼
+        $unitBtns.forEach((btn) => {
+          const active = btn.dataset.unit === periodUnit;
+          btn.classList.toggle("active", active);
+          btn.setAttribute("aria-selected", active ? "true" : "false");
+        });
+
+        compute();
+      }
+
+      function getMonthsFromInput() {
+        const v = Math.max(1, Math.floor(+$periodValue.value || 1));
+        return periodUnit === "months" ? v : v * 12;
+      }
+
+      function compute() {
+        const initial = Math.max(0, +$initial.value || 0);
+        const monthly = Math.max(0, +$monthly.value || 0);
+        const factor = Math.min(2, Math.max(1, +$rate.value || 1));
+        const months = Math.max(1, Math.floor(getMonthsFromInput()));
+
+        let bal = initial;
+        const series = [bal]; // 시작 시점 포함(월 0)
+        const rows = [];
+
+        for (let m = 1; m <= months; m++) {
+          bal = (bal + monthly) * factor; // (잔액 + 투자금) 후 배수 적용
+          series.push(bal);
+          rows.push({ month: m, invest: monthly, factor, end: bal });
+        }
+
+        // 요약 수치
+        const totalContrib = initial + monthly * months;
+        const finalBal = bal;
+        const totalGain = finalBal - totalContrib;
+        const roi = totalContrib > 0 ? (finalBal / totalContrib - 1) * 100 : 0;
+
+        $finalBalance.textContent = fmtKRW(finalBal);
+        $totalContrib.textContent = fmtKRW(totalContrib);
+        $totalGain.textContent =
+          (totalGain >= 0 ? "+" : "-") + fmtKRW(Math.abs(totalGain));
+        $roiPct.textContent = fmtPercentBigUnits(roi, { showSign: true });
+
+        // 표 렌더 (최대 1200행 안전)
+        renderTable(rows.slice(0, 1200));
+
+        // 차트 렌더
+        drawLine(series);
+
+        return { series, rows };
+      }
+
+      function renderTable(rows) {
+        $tableBody.innerHTML = "";
+        const frag = document.createDocumentFragment();
+        for (const r of rows) {
+          const tr = document.createElement("tr");
+          const td1 = document.createElement("td");
+          td1.textContent = r.month + "개월";
+          const td2 = document.createElement("td");
+          td2.textContent = fmtKRW(r.invest);
+          const td3 = document.createElement("td");
+          td3.textContent = r.factor.toFixed(2) + "x";
+          const td4 = document.createElement("td");
+          td4.textContent = fmtKRW(r.end);
+          tr.append(td1, td2, td3, td4);
+          frag.appendChild(tr);
+        }
+        $tableBody.appendChild(frag);
+      }
+
+      function drawLine(series) {
+        // 캔버스 초기화
+        const w = $chart.width,
+          h = $chart.height;
+        const ctx = $chart.getContext("2d");
+        ctx.clearRect(0, 0, w, h);
+
+        // 패딩
+        const padL = 50,
+          padR = 8,
+          padT = 16,
+          padB = 28;
+
+        const xs = series.map((_, i) => i);
+        const ys = series.map((v) => v);
+
+        const xMin = 0,
+          xMax = xs.length - 1 || 1;
+        const yMin = 0;
+        const yMax = Math.max(...ys.filter(Number.isFinite)) * 1.05 || 1;
+
+        const xScale = (x) =>
+          padL + ((x - xMin) / (xMax - xMin)) * (w - padL - padR);
+        const yScale = (y) =>
+          h - padB - ((y - yMin) / (yMax - yMin)) * (h - padT - padB);
+
+        // 축
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = "rgba(255,255,255,.25)";
+        ctx.beginPath();
+        // x-axis
+        ctx.moveTo(padL, h - padB);
+        ctx.lineTo(w - padR, h - padB);
+        // y-axis
+        ctx.moveTo(padL, h - padB);
+        ctx.lineTo(padL, padT);
+        ctx.stroke();
+
+        // y축 라벨 4개
+        ctx.fillStyle = "rgba(255,255,255,.55)";
+        ctx.font =
+          "12px system-ui, -apple-system, Segoe UI, Roboto, sans-serif";
+        const ticks = 4;
+        for (let i = 0; i <= ticks; i++) {
+          const t = i / ticks;
+          const yVal = yMin + t * (yMax - yMin);
+          const y = yScale(yVal);
+          ctx.fillText(shortKRW(yVal), 6, y + 4);
+          ctx.strokeStyle = "rgba(255,255,255,.08)";
+          ctx.beginPath();
+          ctx.moveTo(padL, y);
+          ctx.lineTo(w - padR, y);
+          ctx.stroke();
+        }
+
+        // 라인
+        ctx.lineWidth = 2;
+        const grad = ctx.createLinearGradient(0, 0, w, 0);
+        grad.addColorStop(0, "#8b5cf6");
+        grad.addColorStop(1, "#6ee7ff");
+        ctx.strokeStyle = grad;
+        ctx.beginPath();
+        xs.forEach((xVal, i) => {
+          const x = xScale(xVal);
+          const y = yScale(ys[i]);
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+
+        // 마지막 점 강조
+        const lastX = xScale(xMax);
+        const lastY = yScale(ys[ys.length - 1]);
+        ctx.fillStyle = "#6ee7ff";
+        ctx.beginPath();
+        ctx.arc(lastX, lastY, 3, 0, Math.PI * 2);
+        ctx.fill();
+
+        // y축 금액 라벨 축약
+        function shortKRW(v) {
+          const man = Math.round(v / 10_000); // 만원 단위
+          if (man === 0) return "0";
+          const SHORT = [
+            "만",
+            "억",
+            "조",
+            "경",
+            "해",
+            "자",
+            "양",
+            "구",
+            "간",
+            "정",
+          ];
+          let idx = 0,
+            val = man;
+          while (val >= BASE && idx < SHORT.length - 1) {
+            val /= BASE;
+            idx++;
+          }
+          const text =
+            val % 1 === 0 ? String(val) : val.toFixed(1).replace(/\.0$/, "");
+          return text + SHORT[idx];
+        }
+      }
+
+      // 이벤트
+      [$initial, $monthly, $rate, $periodValue].forEach(($) =>
+        $.addEventListener("input", () => {
+          updateRateDisplay();
+          compute();
+        })
+      );
+
+      document.querySelectorAll("[data-unit]").forEach((btn) => {
+        btn.addEventListener("click", () => setPeriodUnit(btn.dataset.unit));
+      });
+
+      $run.addEventListener("click", compute);
+
+      $reset.addEventListener("click", () => {
+        // 기본값 초기화
+        $initial.value = 5000000;
+        $monthly.value = 500000;
+        $rate.value = 1.02;
+        // 기간은 "개월" 모드 60개월로 초기화
+        setPeriodUnit("months");
+        $periodValue.value = 60;
+
+        updateRateDisplay();
+        compute();
+        $tableWrap.open = false;
+      });
+
+      // 초기 실행
+      updateRateDisplay();
+      compute();
+    </script>
+  </body>
+</html>
